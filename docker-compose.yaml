@@ -1,8 +1,6 @@
 services:
   tvguide:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/n3o2345/tvguide:latest
     container_name: tvguide
     environment:
       TZ: ${TZ:-America/Chicago}
