@@ -1,6 +1,8 @@
-# 📺 EPG Manager
+# 📺 TVGuide
 
 A self-hosted web UI for fetching TV guide data via [zap2xml](https://github.com/jef/zap2xml) and generating XMLTV files for media servers like Jellyfin, Emby, Plex, or any IPTV player that accepts an XMLTV EPG feed.
+
+![Docker Build](https://github.com/your-username/tvguide/actions/workflows/docker-build.yml/badge.svg)
 
 ---
 
@@ -23,8 +25,8 @@ A self-hosted web UI for fetching TV guide data via [zap2xml](https://github.com
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-username/epg-manager.git
-cd epg-manager
+git clone https://github.com/your-username/tvguide.git
+cd tvguide
 ```
 
 ### 2. Configure environment
@@ -58,7 +60,7 @@ If you don't want to build locally, pull from the GitHub Container Registry:
 # docker-compose.yaml
 services:
   tvguide:
-    image: ghcr.io/n3o2345/EPG_Manager:latest
+    image: ghcr.io/your-username/tvguide:latest
     # ... rest of config unchanged
 ```
 
@@ -83,7 +85,7 @@ docker compose up -d
 ## Directory Structure
 
 ```
-epg-manager/
+tvguide/
 ├── app.py                 # Flask web application
 ├── zap2xml.py             # EPG data fetcher (zap2xml port)
 ├── run-multi.sh           # Fetches + merges multiple lineups
@@ -181,9 +183,9 @@ When deploying on TrueNAS SCALE, update `docker-compose.yaml` to use absolute pa
 
 ```yaml
 volumes:
-  - /mnt/pool/appdata/epg-manager/data:/data
-  - /mnt/pool/appdata/epg-manager/output:/output
-  - /mnt/pool/appdata/epg-manager/config:/config
+  - /mnt/pool/appdata/tvguide/data:/data
+  - /mnt/pool/appdata/tvguide/output:/output
+  - /mnt/pool/appdata/tvguide/config:/config
 ```
 
 ---

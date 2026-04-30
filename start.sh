@@ -2,7 +2,7 @@
 set -e
 
 echo "[start] ========================================="
-echo "[start] Starting EPG Manager"
+echo "[start] Starting TVGuide"
 echo "[start] ========================================="
 
 # Ensure directories exist

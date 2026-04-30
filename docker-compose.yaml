@@ -1,7 +1,9 @@
 services:
   tvguide:
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: tvguide
-    image: ghcr.io/n3o2345/EPG_Manager:latest
     environment:
       TZ: ${TZ:-America/Chicago}
       HOST_TZ: ${TZ:-America/Chicago}

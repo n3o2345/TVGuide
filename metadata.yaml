@@ -4,17 +4,17 @@ metadata:
   icon: /mnt/System/APP_Configs/zap2xml/tvguide.png
   app_version: 1.0.0
   capabilities: []
-  description: Zap2XML XMLTV EPG Manager - Fetch TV guide data from Gracenote and generate XMLTV files for media servers
+  description: Zap2XML XMLTV TVGuide - Fetch TV guide data from Gracenote and generate XMLTV files for media servers
   home: https://github.com/jef/zap2xml
   host_mounts: []
   maintainers:
-    - name: EPG Manager
+    - name: TVGuide
       email: ''
   name: zap2xml
   run_as_context: []
   sources:
     - https://github.com/jef/zap2xml
-  title: EPG Manager
+  title: TVGuide
   train: stable
   version: 1.0.0
 migrated: false

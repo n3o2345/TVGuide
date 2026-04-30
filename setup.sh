@@ -3,7 +3,7 @@ set -euo pipefail
 
 # TrueNAS SCALE Zap2XML Setup Script
 echo "========================================="
-echo "TrueNAS SCALE - Zap2XML EPG Manager Setup"
+echo "TrueNAS SCALE - Zap2XML TVGuide Setup"
 echo "========================================="
 echo ""
 
@@ -138,7 +138,7 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     cat > /etc/systemd/system/zap2xml.service <<EOF
 [Unit]
-Description=Zap2XML EPG Manager
+Description=Zap2XML TVGuide
 Requires=docker.service
 After=docker.service
 
