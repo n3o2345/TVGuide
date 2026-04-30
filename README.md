@@ -60,7 +60,7 @@ If you don't want to build locally, pull from the GitHub Container Registry:
 # docker-compose.yaml
 services:
   tvguide:
-    image: ghcr.io/your-username/epg-manager:latest
+    image: ghcr.io/n3o2345/EPG_Manager:latest
     # ... rest of config unchanged
 ```
 
