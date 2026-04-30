@@ -1,0 +1,204 @@
+networks:
+  moj-net:
+    driver: bridge
+    name: moj-net
+  pluto-network:
+    driver: bridge
+    name: pluto-network
+  xumo-network:
+    driver: bridge
+  default:
+    driver: bridge
+
+services:
+  # MoveOnJoy Updater Service
+  moveonjoy-updater:
+    container_name: iptv-moveonjoy
+    image: python:3.11-slim-bookworm
+    command: >
+      sh -c "
+      echo 'Fixing apt sources...' &&
+      echo 'deb http://deb.debian.org/debian bookworm main contrib non-free' > /etc/apt/sources.list &&
+      echo 'deb http://deb.debian.org/debian-security bookworm-security main' >> /etc/apt/sources.list &&
+      echo 'deb http://deb.debian.org/debian bookworm-updates main' >> /etc/apt/sources.list &&
+      apt-get update -y &&
+      apt-get install -y ffmpeg curl &&
+      pip install --no-cache-dir fastapi uvicorn[standard] jinja2 python-multipart aiofiles websockets &&
+      echo 'Starting MoveOnJoy Updater...' &&
+      cd /app &&
+      python server.py
+      "
+    environment:
+      - TZ=America/Chicago
+      - PYTHONUNBUFFERED=1
+    networks:
+      - moj-net
+    ports:
+      - "9001:8080"
+    restart: unless-stopped
+    volumes:
+      - /mnt/System/APP_Configs/IPTV_Playlists/moveonjoy/app:/app
+      - /mnt/System/APP_Configs/IPTV_Playlists/moveonjoy/app/web:/web
+      - /mnt/System/APP_Configs/IPTV_Playlists/moveonjoy/app/web/static:/static
+
+  # Plex for Channels Service
+  plex-for-channels:
+    container_name: iptv-plex
+    image: ghcr.io/jgomez177/plex-for-channels:5.1.2
+    environment:
+      - TZ=America/Chicago
+      - PORT=7777
+    ports:
+      - "9002:7777"
+    restart: unless-stopped
+    volumes:
+      - /mnt/System/APP_Configs/IPTV_Playlists/PlexTV/data:/data
+      - /mnt/System/APP_Configs/IPTV_Playlists/PlexTV/output:/output
+      - /mnt/System/APP_Configs/IPTV_Playlists/PlexTV/config:/config
+      - /mnt/System/APP_Configs/IPTV_Playlists/PlexTV/etc/localtime:/etc/localtime:ro
+
+  # Pluto for Channels Service
+  pluto-for-channels:
+    container_name: pluto-for-channels
+    image: pluto-for-channels:1.2.14
+    build:
+      context: https://github.com/maddox/pluto-for-channels.git#main
+      dockerfile: Dockerfile
+    environment:
+      - START=80000
+      - NODE_ENV=production
+      - PORT=80
+      - TZ=America/Chicago
+    networks:
+      - pluto-network
+    ports:
+      - "9003:80"
+    restart: unless-stopped
+    volumes:
+      - /mnt/System/APP_Configs/IPTV_Playlists/PlutoTV:/app/data
+      - /mnt/System/APP_Configs/IPTV_Playlists/PlutoTV/cache:/usr/src/app/cache
+      - /mnt/System/APP_Configs/IPTV_Playlists/PlutoTV/config:/usr/src/app/config
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 10m
+    x-portals:
+      - host: 0.0.0.0
+        name: Web UI
+        path: /
+        port: 9000
+        scheme: http
+
+  # Samsung TV Plus Service
+  samsung-tvplus:
+    container_name: iptv-samsungtv
+    image: matthuisman/samsung-tvplus-for-channels
+    environment:
+      - REGIONS=us
+      - TZ=America/Chicago
+    ports:
+      - "9004:80"
+    restart: unless-stopped
+    volumes:
+      - /mnt/System/APP_Configs/IPTV_Playlists/SamsungTV/data:/data
+
+  # Xumo Playlist Generator Service
+  xumo-playlist-generator:
+    container_name: xumo-playlist-generator
+    image: python:3.11-slim
+    command: >
+      sh -c "
+      apt-get update &&
+      apt-get install -y curl gzip &&
+      mkdir -p /app/playlists /app/epg &&
+      while true; do
+        echo 'Downloading xumo_playlist.m3u...' &&
+        curl -L -o /app/playlists/xumo_playlist.m3u 'https://raw.githubusercontent.com/BuddyChewChew/xumo-playlist-generator/refs/heads/main/playlists/xumo_playlist.m3u' &&
+        echo 'Downloading EPG file...' &&
+        curl -L -o /app/epg/xumo_epg.xml.gz 'https://github.com/BuddyChewChew/xumo-playlist-generator/raw/refs/heads/main/playlists/xumo_epg.xml.gz' &&
+        echo 'Extracting EPG file...' &&
+        gunzip -f /app/epg/xumo_epg.xml.gz &&
+        echo 'Files ready - Next update in 6 hours' &&
+        sleep 21600;
+      done & python -m http.server 8080 --directory /app
+      "
+    environment:
+      - TZ=America/Chicago
+      - PYTHONUNBUFFERED=1
+    networks:
+      - xumo-network
+    ports:
+      - "9005:8080"
+    restart: unless-stopped
+    volumes:
+      - /mnt/System/APP_Configs/IPTV_Playlists/xumotv/playlists:/app/playlists
+      - /mnt/System/APP_Configs/IPTV_Playlists/xumotv/epg:/app/epg
+    working_dir: /app
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-file: '3'
+        max-size: 10m
+
+volumes:
+  xumo-app:
+    driver: local
+	
+	services:
+  tvapp:
+    container_name: tvapp2
+    environment:
+      - STREAM_QUALITY=hd
+      - FILE_M3U=playlist.m3u8
+      - FILE_EPG=xmltv.xml
+      - LOG_LEVEL=4
+      - TASK_CRON_SYNC=*/60 * * * *
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+      - /mnt/System/APP_Configs/tvapp:/config
+    image: thebinaryninja/tvapp2:latest
+    ports:
+      - 192.168.1.240:9006:4124
+    restart: unless-stopped
+    volumes:
+      - /mnt/System/APP_Configs/tvapp:/config
+      - /mnt/System/APP_Configs/tvapp/etc/timezone:/etc/timezone:ro
+      - /mnt/System/APP_Configs/tvapp/etc/localtime:/etc/localtime:ro
+      - /mnt/System/APP_Configs/tvapp/var/run/docker.sock:/var/run/docker.sock
+      - /mnt/System/APP_Configs/tvapp/config:/config
+      - /mnt/System/APP_Configs/tvapp/app:/usr/bin/app
+	  
+	  
+	  services:
+  dispatcharr:
+    container_name: iptv-dispatcharr
+    environment:
+      - DISPATCHARR_ENV=aio
+      - REDIS_HOST=localhost
+      - CELERY_BROKER_URL=redis://localhost:6379/0
+      - DISPATCHARR_LOG_LEVEL=info
+    image: ghcr.io/dispatcharr/dispatcharr:latest
+    ports:
+      - 192.168.1.240:9000:9191
+    restart: unless-stopped
+    volumes:
+      - /mnt/System/APP_Configs/IPTV_Playlists/dispatcharr2/data:/data
+      - /mnt/Storage/backup/server/dispatcharr:/data/backup :rw

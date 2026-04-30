@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPG Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:        #0d0f12;
+            --surface:   #141619;
+            --surface2:  #1c1f24;
+            --border:    #252830;
+            --border2:   #2e3240;
+            --text:      #c9d1e0;
+            --muted:     #5a6278;
+            --accent:    #4f9cf9;
+            --accent2:   #2563eb;
+            --green:     #22c55e;
+            --green-bg:  #0d1f14;
+            --green-dim: #15803d;
+            --red:       #ef4444;
+            --red-bg:    #1f0d0d;
+            --mono:      'IBM Plex Mono', monospace;
+            --sans:      'IBM Plex Sans', sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ─────────────────────────────────────── */
+        .header {
+            border-bottom: 1px solid var(--border);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: var(--surface);
+        }
+
+        .header-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #e8edf5;
+            letter-spacing: -0.2px;
+        }
+
+        .header p {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 1px;
+        }
+
+        /* ── Layout ──────────────────────────────────────── */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            height: calc(100vh - 77px);
+        }
+
+        .left-panel {
+            padding: 28px 32px;
+            overflow-y: auto;
+            border-right: 1px solid var(--border);
+        }
+
+        .right-panel {
+            padding: 28px 24px;
+            overflow-y: auto;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ── Section titles ──────────────────────────────── */
+        .section {
+            margin-bottom: 28px;
+        }
+
+        .section-title {
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ── Form controls ───────────────────────────────── */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--muted);
+            margin-bottom: 5px;
+            letter-spacing: 0.02em;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 9px 11px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 13px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent2);
+            background: #1a1d22;
+        }
+
+        select option { background: #1c1f24; }
+
+        /* ── Info box ────────────────────────────────────── */
+        .info-box {
+            padding: 10px 13px;
+            background: #0e1520;
+            border: 1px solid #1e3050;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #6e9ec8;
+            margin-bottom: 14px;
+        }
+
+        .info-box a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .info-box a:hover { text-decoration: underline; }
+
+        /* ── ZIP + type buttons ──────────────────────────── */
+        .zip-search-row {
+            margin-bottom: 10px;
+        }
+
+        .provider-type-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn-type {
+            padding: 10px 8px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 500;
+            font-family: var(--sans);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+            line-height: 1.4;
+        }
+
+        .btn-type:hover {
+            border-color: var(--accent2);
+            background: #0e1520;
+            color: var(--accent);
+        }
+
+        .btn-type:active {
+            transform: scale(0.97);
+        }
+
+        /* ── Lineup pairs ────────────────────────────────── */
+        .lineup-pair {
+            display: grid;
+            grid-template-columns: 1fr 130px 32px;
+            gap: 8px;
+            align-items: flex-end;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: border-color 0.15s;
+        }
+
+        .lineup-pair:hover { border-color: #3a3f50; }
+        .lineup-pair label { margin-bottom: 5px; }
+
+        .lineup-id-field {
+            font-family: var(--mono) !important;
+            font-size: 11px !important;
+        }
+
+        .btn-remove {
+            width: 32px;
+            height: 32px;
+            background: var(--red-bg);
+            border: 1px solid #3f1f1f;
+            border-radius: 6px;
+            color: #f87171;
+            cursor: pointer;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+            align-self: flex-end;
+        }
+
+        .btn-remove:hover { background: #2a0f0f; border-color: var(--red); }
+
+        .btn-add-lineup {
+            padding: 8px 14px;
+            background: transparent;
+            border: 1px dashed var(--border2);
+            border-radius: 6px;
+            color: var(--muted);
+            font-size: 12px;
+            cursor: pointer;
+            font-family: var(--sans);
+            transition: all 0.15s;
+            margin-top: 4px;
+        }
+
+        .btn-add-lineup:hover {
+            border-color: var(--accent2);
+            color: var(--accent);
+            background: #0e1520;
+        }
+
+        /* ── Save button ─────────────────────────────────── */
+        .btn-save {
+            padding: 10px 20px;
+            background: var(--accent2);
+            color: white;
+            border: none;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: var(--sans);
+            transition: background 0.15s;
+            margin-top: 4px;
+        }
+
+        .btn-save:hover { background: #1d4fd8; }
+
+        /* ── Right panel: Run button ─────────────────────── */
+        .btn-run {
+            width: 100%;
+            padding: 14px;
+            background: var(--green-dim);
+            border: 1px solid #16a34a;
+            color: #86efac;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--sans);
+            border-radius: 8px;
+            cursor: pointer;
+            letter-spacing: 0.01em;
+            transition: all 0.15s;
+        }
+
+        .btn-run:hover {
+            background: #15803d;
+            border-color: var(--green);
+            color: #bbf7d0;
+        }
+
+        /* ── Progress ────────────────────────────────────── */
+        .progress-card {
+            display: none;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .progress-label {
+            font-size: 12px;
+            color: var(--accent);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .progress-track {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.4s ease;
+            border-radius: 2px;
+        }
+
+        .progress-sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        /* ── Status box ──────────────────────────────────── */
+        .status-box {
+            background: var(--green-bg);
+            border: 1px solid #166534;
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .status-box-title {
+            font-size: 12px;
+            color: var(--green);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .status-meta {
+            font-size: 11px;
+            color: #6db87e;
+            line-height: 1.7;
+        }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 13px;
+            background: var(--accent2);
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background 0.15s;
+        }
+
+        .btn-download:hover { background: #1d4fd8; }
+
+        /* ── Log viewer ──────────────────────────────────── */
+        .log-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .log-title {
+            font-family: var(--mono);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .log-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.3; }
+        }
+
+        .log-viewer {
+            flex: 1;
+            background: #08090b;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 13px;
+            font-family: var(--mono);
+            font-size: 11px;
+            line-height: 1.65;
+            color: #7dc87d;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 420px;
+        }
+
+        .log-viewer.empty {
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* ── Responsive ──────────────────────────────────── */
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; height: auto; }
+            .right-panel { border-top: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-icon">📺</div>
+    <div>
+        <h1>EPG Manager</h1>
+        <p>Zap2XML Electronic Program Guide</p>
+    </div>
+</div>
+
+<div class="layout">
+
+    <!-- ── Left: Settings ── -->
+    <div class="left-panel">
+
+        <form method="POST" action="/" id="settings-form">
+
+            <div class="section">
+                <div class="section-title">Lineups &amp; ZIP Codes</div>
+
+                <!-- ZIP + type picker -->
+                <div class="form-group">
+                    <label>ZIP Code</label>
+                    <div class="zip-search-row">
+                        <input type="text" id="zip-search-input" placeholder="e.g., 65807" maxlength="10"
+                            oninput="this.value = this.value.replace(/[^0-9]/g,'');"
+                            onkeydown="if(event.key==='Enter'){event.preventDefault();}">
+                    </div>
+                </div>
+
+                <div class="provider-type-row">
+                    <button type="button" class="btn-type" onclick="addFromType('ota')">
+                        📡 OTA / Antenna
+                    </button>
+                    <button type="button" class="btn-type" onclick="addFromType('cable')">
+                        📺 Cable
+                    </button>
+                    <button type="button" class="btn-type" onclick="addFromType('satellite')">
+                        🛰️ Satellite (DirecTV)
+                    </button>
+                </div>
+
+                <!-- Added lineup pairs -->
+                <div id="lineup-pairs-container"></div>
+
+                <button type="button" class="btn-add-lineup" onclick="addLineupPair(); return false;">
+                    + Add manually
+                </button>
+
+                <input type="hidden" id="lineups-data"  name="lineups"  value="{{ cfg.get('lineups', '') }}">
+                <input type="hidden" id="zipcodes-data" name="zipcodes" value="{% if cfg.get('zipcodes') %}{% if cfg.get('zipcodes') is string %}{{ cfg.get('zipcodes') }}{% else %}{{ cfg.get('zipcodes')|join(',') }}{% endif %}{% endif %}">
+            </div>
+
+            <div class="section">
+                <div class="section-title">General Settings</div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Country</label>
+                        <select name="country">
+                            <option value="USA" {% if cfg.get('country') == 'USA' %}selected{% endif %}>USA</option>
+                            <option value="CAN" {% if cfg.get('country') == 'CAN' %}selected{% endif %}>Canada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Timespan (hours)</label>
+                        <input type="number" name="timespan" value="{{ cfg.get('timespan', '72') }}" min="6" max="168">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Verbose Logging</label>
+                    <select name="verbose">
+                        <option value="0" {% if cfg.get('verbose', '1') == '0' %}selected{% endif %}>Off</option>
+                        <option value="1" {% if cfg.get('verbose', '1') == '1' %}selected{% endif %}>Normal</option>
+                        <option value="2" {% if cfg.get('verbose', '1') == '2' %}selected{% endif %}>Debug</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Output Directory</label>
+                    <input type="text" name="output_dir" value="{{ cfg.get('output_dir', '/output') }}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>HTTP Server Port</label>
+                        <input type="number" name="http_port" value="{{ cfg.get('http_port', '8282') }}" min="1024" max="65535">
+                    </div>
+                    <div class="form-group">
+                        <label>WebUI Port</label>
+                        <input type="number" name="webui_port" value="{{ cfg.get('webui_port', '5000') }}" min="1024" max="65535">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-save">Save Settings</button>
+
+        </form>
+    </div>
+
+    <!-- ── Right: Actions + Log ── -->
+    <div class="right-panel">
+
+        <div>
+            <form method="POST" action="/run" id="run-form">
+                <button type="submit" class="btn-run" id="run-btn">&#9654; Run EPG Grabber</button>
+            </form>
+        </div>
+
+        <div class="progress-card" id="progress-card">
+            <div class="progress-label">Running EPG Grabber…</div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+            <div class="progress-sub" id="status-text">Initializing…</div>
+        </div>
+
+        {% if xml_info %}
+        <div class="status-box">
+            <div class="status-box-title">&#10003; xmltv.xml ready</div>
+            <div class="status-meta">
+                Available at http://[hostip]:5000/xmltv<br>
+                Size: {{ xml_info.size | filesizeformat }}<br>
+                Updated: {{ xml_info.mtime }}
+            </div>
+            <a href="/xmltv" class="btn-download">&#8595; Download XMLTV</a>
+        </div>
+        {% endif %}
+
+        <div class="log-card">
+            <div class="log-header">
+                <span class="log-title">Latest Log</span>
+                <span class="log-dot"></span>
+            </div>
+            <div class="log-viewer {% if not latest_log %}empty{% endif %}">{% if latest_log %}{{ latest_log }}{% else %}No logs yet.{% endif %}</div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // ── Lineup pair management ──────────────────────────────
+    let lineupPairs = [];
+
+    function parseExistingData() {
+        const lineups  = (document.getElementById('lineups-data').value  || '').split(',').map(s => s.trim()).filter(Boolean);
+        const zipcodes = (document.getElementById('zipcodes-data').value || '').split(',').map(s => s.trim()).filter(Boolean);
+        lineupPairs = [];
+        for (let i = 0; i < Math.max(lineups.length, 0); i++) {
+            lineupPairs.push({ lineup: lineups[i] || '', zip: zipcodes[i] || '', name: '' });
+        }
+    }
+
+    function renderPairs() {
+        const c = document.getElementById('lineup-pairs-container');
+        c.innerHTML = '';
+        if (!lineupPairs.length) return;
+        lineupPairs.forEach((pair, idx) => {
+            const d = document.createElement('div');
+            d.className = 'lineup-pair';
+            d.innerHTML = `
+                <div>
+                    <label>${esc(pair.name) || 'Lineup ID'}</label>
+                    <input type="text" class="lineup-id-field" placeholder="e.g., USA-OTA65807" value="${esc(pair.lineup)}"
+                        oninput="lineupPairs[${idx}].lineup = this.value; syncHidden();">
+                </div>
+                <div>
+                    <label>ZIP Code</label>
+                    <input type="text" placeholder="e.g., 65807" value="${esc(pair.zip)}"
+                        oninput="lineupPairs[${idx}].zip = this.value; syncHidden();">
+                </div>
+                <button type="button" class="btn-remove" title="Remove" onclick="removeLineupPair(${idx})">&#x2715;</button>
+            `;
+            c.appendChild(d);
+        });
+    }
+
+    function esc(s) {
+        return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+
+    function addLineupPair(lineup, zip, name) {
+        lineupPairs.push({ lineup: lineup || '', zip: zip || '', name: name || '' });
+        renderPairs();
+        syncHidden();
+    }
+
+    function removeLineupPair(idx) {
+        lineupPairs.splice(idx, 1);
+        renderPairs();
+        syncHidden();
+    }
+
+    function syncHidden() {
+        document.getElementById('lineups-data').value  = lineupPairs.map(p => p.lineup).filter(Boolean).join(', ');
+        document.getElementById('zipcodes-data').value = lineupPairs.map(p => p.zip).filter(Boolean).join(', ');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        parseExistingData();
+        renderPairs();
+    });
+
+    document.getElementById('settings-form').addEventListener('submit', syncHidden);
+
+    // ── Provider type → Lineup ID builder ──────────────────
+    function addFromType(type) {
+        const zipInput = document.getElementById('zip-search-input');
+        const zip = zipInput.value.trim();
+
+        if (!zip || zip.length < 5) {
+            zipInput.focus();
+            zipInput.style.borderColor = 'var(--red)';
+            zipInput.style.boxShadow = '0 0 0 2px rgba(239,68,68,0.2)';
+            setTimeout(() => {
+                zipInput.style.borderColor = '';
+                zipInput.style.boxShadow = '';
+            }, 1400);
+            return;
+        }
+
+        let lineupId, name;
+        if (type === 'ota') {
+            lineupId = `USA-OTA${zip}`;
+            name = 'OTA / Antenna';
+        } else if (type === 'cable') {
+            lineupId = `USA-MO${zip}-X`;
+            name = 'Cable';
+        } else if (type === 'satellite') {
+            lineupId = 'USA-DITV619-X';
+            name = 'Satellite (DirecTV)';
+        }
+
+        addLineupPair(lineupId, zip, name);
+
+        // Brief flash on the ZIP input to confirm
+        zipInput.style.borderColor = 'var(--green-dim)';
+        setTimeout(() => zipInput.style.borderColor = '', 800);
+    }
+
+    // ── Run button progress ─────────────────────────────────
+    document.getElementById('run-form').addEventListener('submit', function() {
+        const card = document.getElementById('progress-card');
+        const bar  = document.getElementById('progress-bar');
+        const sub  = document.getElementById('status-text');
+
+        card.style.display = 'block';
+        bar.style.width = '8%';
+        sub.textContent = 'Starting EPG Grabber…';
+
+        let progress = 8;
+        const iv = setInterval(() => {
+            progress = Math.min(progress + Math.random() * 18, 90);
+            bar.style.width = progress + '%';
+        }, 900);
+
+        setTimeout(() => { clearInterval(iv); location.reload(); }, 5000);
+    });
+
+    // ── Auto-refresh log ────────────────────────────────────
+    function refreshLog() {
+        fetch('/logs')
+            .then(r => r.text())
+            .then(html => {
+                const lv = document.querySelector('.log-viewer');
+                if (!lv) return;
+                const text = html.replace(/<[^>]*>/g, '');
+                lv.classList.toggle('empty', !text.trim());
+                lv.textContent = text || 'No logs yet.';
+                lv.scrollTop   = lv.scrollHeight;
+            })
+            .catch(() => {});
+    }
+
+    setInterval(refreshLog, 2000);
+</script>
+</body>
+</html>
