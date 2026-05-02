@@ -58,7 +58,7 @@ If you don't want to build locally, pull from the GitHub Container Registry:
 # docker-compose.yaml
 services:
   tvguide:
-    image: ghcr.io/your-username/tvguide:latest
+    image: ghcr.io/n3o2345/tvguide:latest
     # ... rest of config unchanged
 ```
 
