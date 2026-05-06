@@ -2,8 +2,6 @@
 
 A self-hosted web UI for fetching TV guide data via [zap2xml](https://github.com/jef/zap2xml) and generating XMLTV files for media servers like Jellyfin, Emby, Plex, or any IPTV player that accepts an XMLTV EPG feed.
 
-![Docker Build](https://github.com/your-username/tvguide/actions/workflows/docker-build.yml/badge.svg)
-
 ---
 
 ## Features
@@ -60,7 +58,7 @@ If you don't want to build locally, pull from the GitHub Container Registry:
 # docker-compose.yaml
 services:
   tvguide:
-    image: ghcr.io/your-username/tvguide:latest
+    image: ghcr.io/n3o2345/tvguide:latest
     # ... rest of config unchanged
 ```
 
