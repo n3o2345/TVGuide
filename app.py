@@ -10,7 +10,7 @@ CONFIG_FILE = "/config/settings.json"
 LOG_DIR = "/output/logs"
 XML_PATH = "/output/xmltv.xml"
 
-app = Flask(__name__, template_folder='/app/templates')
+app = Flask(__name__, template_folder='/app/templates', static_folder='/app/static')
 
 def load_cfg():
     if not os.path.exists(CONFIG_FILE):
@@ -88,6 +88,10 @@ def run_in_background(cmd):
     t = threading.Thread(target=reader, daemon=True)
     t.start()
     return p
+
+@app.route("/logo")
+def logo():
+    return send_from_directory('/app/static', 'tvguide.png', mimetype='image/png')
 
 @app.after_request
 def add_no_cache_headers(response):

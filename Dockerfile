@@ -27,8 +27,12 @@ COPY start.sh .
 # Copy templates directory
 COPY templates/ /app/templates/
 
+# Copy static assets
+COPY static/ /app/static/
+
 # Create necessary directories
 RUN mkdir -p /app/templates && \
+    mkdir -p /app/static && \
     mkdir -p /config && \
     mkdir -p /output/logs && \
     mkdir -p /data
