@@ -110,22 +110,9 @@ fi
 mkdir -p "$OUTPUT_BASE"
 MERGED="$OUTPUT_BASE/xmltv.xml"
 
-echo "[run-multi] Concatenating ${#OUTFILES[@]} XML files..."
+echo "[run-multi] Merging ${#OUTFILES[@]} XML files..."
 
-echo '<?xml version="1.0" encoding="UTF-8"?>' > "$MERGED"
-echo '<tv>' >> "$MERGED"
-
-for f in "${OUTFILES[@]}"; do
-    echo "[run-multi] Adding: $f"
-    # Strip the XML declaration, opening <tv>, and closing </tv> from
-    # each part file so only <channel> and <programme> elements are merged.
-    grep -v '<?xml' "$f" \
-        | grep -v '^\s*<tv>' \
-        | grep -v '^\s*</tv>' \
-        >> "$MERGED" 2>/dev/null || true
-done
-
-echo '</tv>' >> "$MERGED"
+python3 /app/merge_xmltv.py "$MERGED" "${OUTFILES[@]}"
 
 rm -rf "$TEMP_DIR"
 
