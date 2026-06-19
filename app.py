@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response
 from markupsafe import Markup
+import gzip
 import json
 import os
 import subprocess
@@ -169,9 +170,58 @@ def logs():
 
 @app.route("/xmltv")
 def xmltv():
-    if os.path.exists(XML_PATH):
-        return send_from_directory("/output", "xmltv.xml")
-    return "No xmltv.xml yet", 404
+    """Serve the XMLTV file as plain XML or gzip-compressed.
+
+    Output format is selected by (in priority order):
+      1. Query parameter  ?output=xml  or  ?output=gz
+      2. Accept-Encoding request header containing 'gzip'
+      3. Default: plain XML
+    """
+    if not os.path.exists(XML_PATH):
+        return "No xmltv.xml yet", 404
+
+    output_param = request.args.get("output", "").lower()
+    accept_enc = request.headers.get("Accept-Encoding", "")
+
+    use_gzip = (output_param == "gz") or (
+        output_param != "xml" and "gzip" in accept_enc
+    )
+
+    if use_gzip:
+        with open(XML_PATH, "rb") as f:
+            xml_bytes = f.read()
+        gz_bytes = gzip.compress(xml_bytes)
+        return Response(
+            gz_bytes,
+            status=200,
+            mimetype="application/gzip",
+            headers={
+                "Content-Disposition": "attachment; filename=xmltv.xml.gz",
+                "Content-Length": str(len(gz_bytes)),
+            },
+        )
+    else:
+        return send_from_directory("/output", "xmltv.xml", mimetype="text/xml")
+
+
+@app.route("/xmltv.gz")
+def xmltv_gz():
+    """Convenience endpoint — always serves the gzip-compressed XMLTV file."""
+    if not os.path.exists(XML_PATH):
+        return "No xmltv.xml yet", 404
+
+    with open(XML_PATH, "rb") as f:
+        xml_bytes = f.read()
+    gz_bytes = gzip.compress(xml_bytes)
+    return Response(
+        gz_bytes,
+        status=200,
+        mimetype="application/gzip",
+        headers={
+            "Content-Disposition": "attachment; filename=xmltv.xml.gz",
+            "Content-Length": str(len(gz_bytes)),
+        },
+    )
 
 if __name__ == "__main__":
     app.config['TEMPLATES_AUTO_RELOAD'] = True
