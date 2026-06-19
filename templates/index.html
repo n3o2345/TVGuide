@@ -392,6 +392,31 @@
         }
 
         .btn-download:hover { background: #1d4fd8; }
+        .btn-download.gz { background: #0e7a4e; }
+        .btn-download.gz:hover { background: #0a5c3a; }
+
+        /* ── URL rows ────────────────────────────────────── */
+        .url-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 4px; }
+        .url-row {
+            display: flex; align-items: center; gap: 6px;
+            background: #0d1117; border: 1px solid #222; border-radius: 5px;
+            padding: 5px 8px; font-size: 11px;
+        }
+        .url-label {
+            color: var(--muted); font-weight: 600; min-width: 36px; flex-shrink: 0;
+        }
+        .url-value {
+            color: #a8d4f5; font-family: 'IBM Plex Mono', monospace;
+            flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .btn-copy {
+            flex-shrink: 0; padding: 2px 8px; font-size: 10px; font-weight: 600;
+            background: #1e2533; border: 1px solid #333; border-radius: 4px;
+            color: var(--muted); cursor: pointer; transition: all 0.15s;
+        }
+        .btn-copy:hover { background: #2a3347; color: white; border-color: #555; }
+        .btn-copy.copied { color: #6db87e; border-color: #6db87e; }
+        .btn-dl-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 
         /* ── Log viewer ──────────────────────────────────── */
         .log-card {
@@ -583,11 +608,29 @@
         <div class="status-box">
             <div class="status-box-title">&#10003; xmltv.xml ready</div>
             <div class="status-meta">
-                Available at http://[hostip]:5000/xmltv<br>
-                Size: {{ xml_info.size | filesizeformat }}<br>
-                Updated: {{ xml_info.mtime }}
+                Size: {{ xml_info.size | filesizeformat }} &nbsp;&middot;&nbsp; Updated: {{ xml_info.mtime }}
             </div>
-            <a href="/xmltv" class="btn-download">&#8595; Download XMLTV</a>
+            <div class="url-rows">
+                <div class="url-row">
+                    <span class="url-label">XML</span>
+                    <span class="url-value" id="url-xml">http://{{ request.host }}/xmltv</span>
+                    <button class="btn-copy" onclick="copyUrl('url-xml', this)">Copy</button>
+                </div>
+                <div class="url-row">
+                    <span class="url-label">GZ</span>
+                    <span class="url-value" id="url-gz">http://{{ request.host }}/xmltv.gz</span>
+                    <button class="btn-copy" onclick="copyUrl('url-gz', this)">Copy</button>
+                </div>
+                <div class="url-row">
+                    <span class="url-label">GZ ↓</span>
+                    <span class="url-value" id="url-gz2">http://{{ request.host }}/xmltv?output=gz</span>
+                    <button class="btn-copy" onclick="copyUrl('url-gz2', this)">Copy</button>
+                </div>
+            </div>
+            <div class="btn-dl-row">
+                <a href="/xmltv" class="btn-download">&#8595; Download XML</a>
+                <a href="/xmltv.gz" class="btn-download gz">&#8595; Download GZ</a>
+            </div>
         </div>
         {% endif %}
 
@@ -700,6 +743,16 @@
         // Brief flash on the ZIP input to confirm
         zipInput.style.borderColor = 'var(--green-dim)';
         setTimeout(() => zipInput.style.borderColor = '', 800);
+    }
+
+    // ── Copy URL ────────────────────────────────────────────
+    function copyUrl(id, btn) {
+        const text = document.getElementById(id).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+        });
     }
 
     // ── Run button progress ─────────────────────────────────

@@ -117,7 +117,12 @@ echo '<tv>' >> "$MERGED"
 
 for f in "${OUTFILES[@]}"; do
     echo "[run-multi] Adding: $f"
-    tail -n +2 "$f" | head -n -1 >> "$MERGED" 2>/dev/null || true
+    # Strip the XML declaration, opening <tv>, and closing </tv> from
+    # each part file so only <channel> and <programme> elements are merged.
+    grep -v '<?xml' "$f" \
+        | grep -v '^\s*<tv>' \
+        | grep -v '^\s*</tv>' \
+        >> "$MERGED" 2>/dev/null || true
 done
 
 echo '</tv>' >> "$MERGED"
