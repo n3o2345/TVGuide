@@ -8,10 +8,19 @@ import threading
 import time
 
 CONFIG_FILE = "/config/settings.json"
-LOG_DIR = "/output/logs"
-XML_PATH = "/output/xmltv.xml"
+DEFAULT_OUTPUT_DIR = "/output"
 
 app = Flask(__name__, template_folder='/app/templates', static_folder='/app/static')
+
+def get_output_dir():
+    cfg = load_cfg()
+    return cfg.get('output_dir', DEFAULT_OUTPUT_DIR).rstrip('/')
+
+def get_xml_path():
+    return os.path.join(get_output_dir(), 'xmltv.xml')
+
+def get_log_dir():
+    return os.path.join(get_output_dir(), 'logs')
 
 def load_cfg():
     if not os.path.exists(CONFIG_FILE):
@@ -66,7 +75,8 @@ def tail_log(file_path, lines=200):
         return ""
 
 def run_in_background(cmd):
-    os.makedirs(LOG_DIR, exist_ok=True)
+    log_dir = get_log_dir()
+    os.makedirs(log_dir, exist_ok=True)
     p = subprocess.Popen(
         cmd,
         shell=True,
@@ -75,7 +85,7 @@ def run_in_background(cmd):
         bufsize=1,
         universal_newlines=True
     )
-    latest = os.path.join(LOG_DIR, "latest.log")
+    latest = os.path.join(log_dir, "latest.log")
     
     def reader():
         try:
@@ -139,26 +149,26 @@ def index():
     cfg['lineups_json'] = json.dumps([l.strip() for l in str(lineups_data).split(',') if l.strip()])
     
     latest_log = ""
-    latest_log_path = os.path.join(LOG_DIR, "latest.log")
+    latest_log_path = os.path.join(get_log_dir(), "latest.log")
     if os.path.exists(latest_log_path):
         latest_log = tail_log(latest_log_path, lines=500)
     
+    xml_path = get_xml_path()
     xml_info = {}
-    if os.path.exists(XML_PATH):
-        xml_info['size'] = os.path.getsize(XML_PATH)
-        xml_info['mtime'] = time.ctime(os.path.getmtime(XML_PATH))
+    if os.path.exists(xml_path):
+        xml_info['size'] = os.path.getsize(xml_path)
+        xml_info['mtime'] = time.ctime(os.path.getmtime(xml_path))
     
     return render_template("index.html", cfg=cfg, latest_log=latest_log, xml_info=xml_info)
 
 @app.route("/run", methods=["POST"])
 def run_now():
-    os.makedirs(LOG_DIR, exist_ok=True)
     run_in_background("/app/run-multi.sh")
     return redirect(url_for('index'))
 
 @app.route("/logs")
 def logs():
-    latest_log_path = os.path.join(LOG_DIR, "latest.log")
+    latest_log_path = os.path.join(get_log_dir(), "latest.log")
     content = ""
     if os.path.exists(latest_log_path):
         try:
@@ -177,20 +187,17 @@ def xmltv():
       2. Accept-Encoding request header containing 'gzip'
       3. Default: plain XML
     """
-    if not os.path.exists(XML_PATH):
-        return "No xmltv.xml yet", 404
+    xml_path = get_xml_path()
+    if not os.path.exists(xml_path):
+        return "No xmltv.xml yet — run the EPG grabber first.", 404
 
     output_param = request.args.get("output", "").lower()
     accept_enc = request.headers.get("Accept-Encoding", "")
-
-    use_gzip = (output_param == "gz") or (
-        output_param != "xml" and "gzip" in accept_enc
-    )
+    use_gzip = (output_param == "gz") or (output_param != "xml" and "gzip" in accept_enc)
 
     if use_gzip:
-        with open(XML_PATH, "rb") as f:
-            xml_bytes = f.read()
-        gz_bytes = gzip.compress(xml_bytes)
+        with open(xml_path, "rb") as f:
+            gz_bytes = gzip.compress(f.read())
         return Response(
             gz_bytes,
             status=200,
@@ -200,19 +207,18 @@ def xmltv():
                 "Content-Length": str(len(gz_bytes)),
             },
         )
-    else:
-        return send_from_directory("/output", "xmltv.xml", mimetype="text/xml")
+    return send_from_directory(os.path.dirname(xml_path), os.path.basename(xml_path), mimetype="text/xml")
 
 
 @app.route("/xmltv.gz")
 def xmltv_gz():
     """Convenience endpoint — always serves the gzip-compressed XMLTV file."""
-    if not os.path.exists(XML_PATH):
-        return "No xmltv.xml yet", 404
+    xml_path = get_xml_path()
+    if not os.path.exists(xml_path):
+        return "No xmltv.xml yet — run the EPG grabber first.", 404
 
-    with open(XML_PATH, "rb") as f:
-        xml_bytes = f.read()
-    gz_bytes = gzip.compress(xml_bytes)
+    with open(xml_path, "rb") as f:
+        gz_bytes = gzip.compress(f.read())
     return Response(
         gz_bytes,
         status=200,
