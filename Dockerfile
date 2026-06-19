@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY app.py .
 COPY zap2xml.py .
+COPY merge_xmltv.py .
 COPY run-multi.sh .
 COPY scheduler.sh .
 COPY start.sh .
