@@ -210,6 +210,11 @@ def xmltv():
     return send_from_directory(os.path.dirname(xml_path), os.path.basename(xml_path), mimetype="text/xml")
 
 
+@app.route("/epg.xml")
+def epg_xml():
+    """Alias for /xmltv — compatible with HDHomeRunXmlAPI URL format."""
+    return xmltv()
+
 @app.route("/xmltv.gz")
 def xmltv_gz():
     """Convenience endpoint — always serves the gzip-compressed XMLTV file."""
