@@ -12,29 +12,14 @@ DEFAULT_OUTPUT_DIR = "/output"
 
 app = Flask(__name__, template_folder='/app/templates', static_folder='/app/static')
 
-def get_output_dir():
-    cfg = load_cfg()
-    return cfg.get('output_dir', DEFAULT_OUTPUT_DIR).rstrip('/')
-
-def get_xml_path():
-    return os.path.join(get_output_dir(), 'xmltv.xml')
-
-def get_log_dir():
-    return os.path.join(get_output_dir(), 'logs')
+# ── Config helpers ────────────────────────────────────────
 
 def load_cfg():
     if not os.path.exists(CONFIG_FILE):
-        # Create default config if it doesn't exist
         default_cfg = {
-            'lineups': '',
-            'zipcodes': [],
-            'country': 'USA',
-            'timespan': '72',
-            'verbose': '1',
-            'output_dir': '/output',
-            'http_port': '8282',
-            'webui_port': '5000'
-        
+            'lineups': '', 'zipcodes': [], 'country': 'USA',
+            'timespan': '72', 'verbose': '1',
+            'output_dir': '/output', 'http_port': '8282', 'webui_port': '5000'
         }
         save_cfg(default_cfg)
         return default_cfg
@@ -52,6 +37,17 @@ def save_cfg(cfg):
             json.dump(cfg, f, indent=2)
     except Exception as e:
         print(f"Error saving config: {e}")
+
+def get_output_dir():
+    return load_cfg().get('output_dir', DEFAULT_OUTPUT_DIR).rstrip('/')
+
+def get_xml_path():
+    return os.path.join(get_output_dir(), 'xmltv.xml')
+
+def get_log_dir():
+    return os.path.join(get_output_dir(), 'logs')
+
+# ── Utilities ─────────────────────────────────────────────
 
 def tail_log(file_path, lines=200):
     if not os.path.exists(file_path):
@@ -78,15 +74,12 @@ def run_in_background(cmd):
     log_dir = get_log_dir()
     os.makedirs(log_dir, exist_ok=True)
     p = subprocess.Popen(
-        cmd,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        bufsize=1,
-        universal_newlines=True
+        cmd, shell=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        bufsize=1, universal_newlines=True
     )
     latest = os.path.join(log_dir, "latest.log")
-    
+
     def reader():
         try:
             with open(latest, "a") as out:
@@ -95,10 +88,51 @@ def run_in_background(cmd):
                     out.flush()
         except Exception as e:
             print(f"Error writing log: {e}")
-    
-    t = threading.Thread(target=reader, daemon=True)
-    t.start()
+
+    threading.Thread(target=reader, daemon=True).start()
     return p
+
+# ── XMLTV serving ─────────────────────────────────────────
+
+def _serve_xml(use_gzip=False):
+    xml_path = get_xml_path()
+    if not os.path.exists(xml_path):
+        return "No epg.xml yet — run the EPG grabber first.", 404
+
+    if use_gzip:
+        with open(xml_path, "rb") as f:
+            gz_bytes = gzip.compress(f.read())
+        return Response(
+            gz_bytes, status=200, mimetype="application/gzip",
+            headers={
+                "Content-Disposition": "attachment; filename=epg.xml.gz",
+                "Content-Length": str(len(gz_bytes)),
+            }
+        )
+    return send_from_directory(
+        os.path.dirname(xml_path), os.path.basename(xml_path),
+        mimetype="text/xml"
+    )
+
+@app.route("/epg.xml")
+@app.route("/xmltv")
+def epg_xml():
+    """Serve XMLTV as plain XML or gzip.
+    ?output=gz  or  Accept-Encoding: gzip  → compressed
+    ?output=xml                             → plain XML (override)
+    """
+    param = request.args.get("output", "").lower()
+    accept = request.headers.get("Accept-Encoding", "")
+    use_gzip = (param == "gz") or (param != "xml" and "gzip" in accept)
+    return _serve_xml(use_gzip)
+
+@app.route("/epg.xml.gz")
+@app.route("/xmltv.gz")
+def epg_xml_gz():
+    """Always serve gzip-compressed XMLTV."""
+    return _serve_xml(use_gzip=True)
+
+# ── Static / misc ─────────────────────────────────────────
 
 @app.route("/logo")
 def logo():
@@ -111,54 +145,49 @@ def add_no_cache_headers(response):
     response.headers['Expires'] = '0'
     return response
 
+# ── Routes ────────────────────────────────────────────────
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
         cfg = load_cfg()
-        cfg['lineups'] = request.form.get('lineups', '').strip()
-        cfg['zipcodes'] = request.form.get('zipcodes', '').strip()
-        cfg['country'] = request.form.get('country', 'USA').strip()
-        cfg['timespan'] = request.form.get('timespan', '72').strip()
-        cfg['verbose'] = request.form.get('verbose', '1').strip()
+        cfg['lineups']    = request.form.get('lineups', '').strip()
+        cfg['zipcodes']   = request.form.get('zipcodes', '').strip()
+        cfg['country']    = request.form.get('country', 'USA').strip()
+        cfg['timespan']   = request.form.get('timespan', '72').strip()
+        cfg['verbose']    = request.form.get('verbose', '1').strip()
         cfg['output_dir'] = request.form.get('output_dir', '/output').strip()
-        cfg['http_port'] = request.form.get('http_port', '8282').strip()
+        cfg['http_port']  = request.form.get('http_port', '8282').strip()
         cfg['webui_port'] = request.form.get('webui_port', '5000').strip()
-        
         print(f"Config saved: lineups={cfg.get('lineups')}, zipcodes={cfg.get('zipcodes')}")
         save_cfg(cfg)
         return redirect(url_for('index'))
-    
-    # GET request
+
     cfg = load_cfg()
-    
-    # Convert zipcodes to JSON string for template (handle both old and new formats)
+
     zipcodes_data = cfg.get('zipcodes', [])
     if isinstance(zipcodes_data, str):
-        # Legacy comma-separated format
         zipcodes_data = [{'zip': z.strip(), 'provider': ''} for z in zipcodes_data.split(',') if z.strip()]
     elif not isinstance(zipcodes_data, list):
         zipcodes_data = []
-    
     cfg['zipcodes_json'] = json.dumps(zipcodes_data)
-    
-    # Convert lineups for template
+
     lineups_data = cfg.get('lineups', '')
     if isinstance(lineups_data, list):
         lineups_data = ', '.join(lineups_data)
     cfg['lineups_json'] = json.dumps([l.strip() for l in str(lineups_data).split(',') if l.strip()])
-    
+
     latest_log = ""
     latest_log_path = os.path.join(get_log_dir(), "latest.log")
     if os.path.exists(latest_log_path):
         latest_log = tail_log(latest_log_path, lines=500)
-    
+
     xml_path = get_xml_path()
     xml_info = {}
     if os.path.exists(xml_path):
-        xml_info['size'] = os.path.getsize(xml_path)
+        xml_info['size']  = os.path.getsize(xml_path)
         xml_info['mtime'] = time.ctime(os.path.getmtime(xml_path))
-    
+
     return render_template("index.html", cfg=cfg, latest_log=latest_log, xml_info=xml_info)
 
 @app.route("/run", methods=["POST"])
@@ -177,62 +206,6 @@ def logs():
         except Exception as e:
             content = f"Error reading logs: {e}"
     return "<pre>" + Markup.escape(content) + "</pre>"
-
-@app.route("/xmltv")
-def xmltv():
-    """Serve the XMLTV file as plain XML or gzip-compressed.
-
-    Output format is selected by (in priority order):
-      1. Query parameter  ?output=xml  or  ?output=gz
-      2. Accept-Encoding request header containing 'gzip'
-      3. Default: plain XML
-    """
-    xml_path = get_xml_path()
-    if not os.path.exists(xml_path):
-        return "No xmltv.xml yet — run the EPG grabber first.", 404
-
-    output_param = request.args.get("output", "").lower()
-    accept_enc = request.headers.get("Accept-Encoding", "")
-    use_gzip = (output_param == "gz") or (output_param != "xml" and "gzip" in accept_enc)
-
-    if use_gzip:
-        with open(xml_path, "rb") as f:
-            gz_bytes = gzip.compress(f.read())
-        return Response(
-            gz_bytes,
-            status=200,
-            mimetype="application/gzip",
-            headers={
-                "Content-Disposition": "attachment; filename=xmltv.xml.gz",
-                "Content-Length": str(len(gz_bytes)),
-            },
-        )
-    return send_from_directory(os.path.dirname(xml_path), os.path.basename(xml_path), mimetype="text/xml")
-
-
-@app.route("/epg.xml")
-def epg_xml():
-    """Alias for /xmltv — compatible with HDHomeRunXmlAPI URL format."""
-    return xmltv()
-
-@app.route("/xmltv.gz")
-def xmltv_gz():
-    """Convenience endpoint — always serves the gzip-compressed XMLTV file."""
-    xml_path = get_xml_path()
-    if not os.path.exists(xml_path):
-        return "No xmltv.xml yet — run the EPG grabber first.", 404
-
-    with open(xml_path, "rb") as f:
-        gz_bytes = gzip.compress(f.read())
-    return Response(
-        gz_bytes,
-        status=200,
-        mimetype="application/gzip",
-        headers={
-            "Content-Disposition": "attachment; filename=xmltv.xml.gz",
-            "Content-Length": str(len(gz_bytes)),
-        },
-    )
 
 if __name__ == "__main__":
     app.config['TEMPLATES_AUTO_RELOAD'] = True

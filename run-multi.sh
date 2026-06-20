@@ -17,15 +17,12 @@ if test ! -f "$CONFIG_FILE"; then
   exit 1
 fi
 
-# .lineups may be a string ("A,B") or a JSON array (["A","B"]) — normalize to CSV
+# Normalize lineups/zipcodes: handle JSON array or plain CSV string
 LINEUPS=$(jq -r 'if .lineups | type == "array" then .lineups | join(",") else .lineups end' "$CONFIG_FILE")
-# .zipcodes may be a JSON array of strings or objects {zip,provider}, or a plain CSV string
 ZIPCODES=$(jq -r '
   if .zipcodes | type == "array" then
     [ .zipcodes[] | if type == "object" then .zip else . end ] | join(",")
-  else
-    .zipcodes
-  end
+  else .zipcodes end
 ' "$CONFIG_FILE")
 COUNTRY=$(jq -r '.country' "$CONFIG_FILE")
 TIMESPAN=$(jq -r '.timespan' "$CONFIG_FILE")
@@ -118,17 +115,8 @@ fi
 mkdir -p "$OUTPUT_BASE"
 MERGED="$OUTPUT_BASE/xmltv.xml"
 
-echo "[run-multi] Concatenating ${#OUTFILES[@]} XML files..."
-
-echo '<?xml version="1.0" encoding="UTF-8"?>' > "$MERGED"
-echo '<tv>' >> "$MERGED"
-
-for f in "${OUTFILES[@]}"; do
-    echo "[run-multi] Adding: $f"
-    tail -n +2 "$f" | head -n -1 >> "$MERGED" 2>/dev/null || true
-done
-
-echo '</tv>' >> "$MERGED"
+echo "[run-multi] Merging ${#OUTFILES[@]} XML files..."
+python3 /app/merge_xmltv.py "$MERGED" "${OUTFILES[@]}"
 
 rm -rf "$TEMP_DIR"
 

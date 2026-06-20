@@ -17,6 +17,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Cache bust — increment when scripts change to force layer rebuild
+ARG CACHE_BUST=3
+
 # Copy application files
 COPY app.py .
 COPY zap2xml.py .

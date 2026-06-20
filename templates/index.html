@@ -395,16 +395,13 @@
         .btn-download.gz { background: #0e7a4e; }
         .btn-download.gz:hover { background: #0a5c3a; }
 
-        /* ── URL rows ────────────────────────────────────── */
         .url-rows { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 4px; }
         .url-row {
             display: flex; align-items: center; gap: 6px;
             background: #0d1117; border: 1px solid #222; border-radius: 5px;
             padding: 5px 8px; font-size: 11px;
         }
-        .url-label {
-            color: var(--muted); font-weight: 600; min-width: 36px; flex-shrink: 0;
-        }
+        .url-label { color: var(--muted); font-weight: 600; min-width: 52px; flex-shrink: 0; }
         .url-value {
             color: #a8d4f5; font-family: 'IBM Plex Mono', monospace;
             flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -606,30 +603,30 @@
 
         {% if xml_info %}
         <div class="status-box">
-            <div class="status-box-title">&#10003; xmltv.xml ready</div>
+            <div class="status-box-title">&#10003; epg.xml ready</div>
             <div class="status-meta">
                 Size: {{ xml_info.size | filesizeformat }} &nbsp;&middot;&nbsp; Updated: {{ xml_info.mtime }}
             </div>
             <div class="url-rows">
                 <div class="url-row">
                     <span class="url-label">XML</span>
-                    <span class="url-value" id="url-xml">http://{{ request.host }}/xmltv</span>
-                    <button class="btn-copy" onclick="copyUrl('url-xml', this)">Copy</button>
+                    <span class="url-value" id="url-xml">http://{{ request.host }}/epg.xml</span>
+                    <button class="btn-copy" onclick="copyUrl('url-xml',this)">Copy</button>
                 </div>
                 <div class="url-row">
                     <span class="url-label">GZ</span>
-                    <span class="url-value" id="url-gz">http://{{ request.host }}/xmltv.gz</span>
-                    <button class="btn-copy" onclick="copyUrl('url-gz', this)">Copy</button>
+                    <span class="url-value" id="url-gz">http://{{ request.host }}/epg.xml.gz</span>
+                    <button class="btn-copy" onclick="copyUrl('url-gz',this)">Copy</button>
                 </div>
                 <div class="url-row">
-                    <span class="url-label">GZ ↓</span>
-                    <span class="url-value" id="url-gz2">http://{{ request.host }}/xmltv?output=gz</span>
-                    <button class="btn-copy" onclick="copyUrl('url-gz2', this)">Copy</button>
+                    <span class="url-label">GZ param</span>
+                    <span class="url-value" id="url-gzp">http://{{ request.host }}/epg.xml?output=gz</span>
+                    <button class="btn-copy" onclick="copyUrl('url-gzp',this)">Copy</button>
                 </div>
             </div>
             <div class="btn-dl-row">
-                <a href="/xmltv" class="btn-download">&#8595; Download XML</a>
-                <a href="/xmltv.gz" class="btn-download gz">&#8595; Download GZ</a>
+                <a href="/epg.xml" class="btn-download">&#8595; Download XML</a>
+                <a href="/epg.xml.gz" class="btn-download gz">&#8595; Download GZ</a>
             </div>
         </div>
         {% endif %}
@@ -745,10 +742,9 @@
         setTimeout(() => zipInput.style.borderColor = '', 800);
     }
 
-    // ── Copy URL ────────────────────────────────────────────
+    // ── Copy URL ─────────────────────────────────────────────
     function copyUrl(id, btn) {
-        const text = document.getElementById(id).textContent;
-        navigator.clipboard.writeText(text).then(() => {
+        navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => {
             btn.textContent = 'Copied!';
             btn.classList.add('copied');
             setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
